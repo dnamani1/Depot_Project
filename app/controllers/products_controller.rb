@@ -3,7 +3,7 @@ class ProductsController < ApplicationController
 
   # GET /products or /products.json
   def index
-    @products = Product.all
+    @products = Product.all.order(:title)
   end
 
   # GET /products/1 or /products/1.json
@@ -19,6 +19,17 @@ class ProductsController < ApplicationController
   def edit
   end
 
+  def who_bought
+    @product = Product.find(params[:id])
+    @latest_order = @product.orders.order(:updated_at)
+  last
+    if stale?(@latest_order)
+      respond_to do |format|
+        format.atom
+      end
+    end
+  end  
+
   # POST /products or /products.json
   def create
     @product = Product.new(product_params)
@@ -28,7 +39,7 @@ class ProductsController < ApplicationController
         format.html { redirect_to product_url(@product), notice: "Product was successfully created." }
         format.json { render :show, status: :created, location: @product }
       else
-        puts @product.errors.full_messages
+        
         format.html { render :new, status: :unprocessable_entity }
         format.json { render json: @product.errors, status: :unprocessable_entity }
       end
@@ -41,8 +52,9 @@ class ProductsController < ApplicationController
       if @product.update(product_params)
         format.html { redirect_to product_url(@product), notice: "Product was successfully updated." }
         format.json { render :show, status: :ok, location: @product }
-
-        @product.broadcast_replace_later_to 'products', partial: 'store/product'
+        
+          @product.broadcast_replace_later_to 'products',
+          partial: 'store/product'
       else
         format.html { render :edit, status: :unprocessable_entity }
         format.json { render json: @product.errors, status: :unprocessable_entity }
@@ -71,3 +83,4 @@ class ProductsController < ApplicationController
       params.require(:product).permit(:title, :description, :image_url, :price)
     end
 end
+
